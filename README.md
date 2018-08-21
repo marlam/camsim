@@ -27,13 +27,11 @@ Features:
     directional lights)
   - Light sources with measured intensity distribution and structured-light
     projecting light sources
-  - Materials with
-    - ambient, diffuse, specular, gloss, emission and lightness maps
-    - transparency (but not translucency)
-    - bump or normal maps
-    - BRDF-based lighting (in the simplest case using the modified Phong model)
+  - Materials with ambient, diffuse, specular, gloss, emission and lightness maps;
+    transparency (but not translucency); bump or normal maps; BRDF-based lighting
+    (in the simplest case using the modified Phong model)
   - Builtin functions to create scenes using simple geometries (quads, cubes,
-    cylinders, cones, spheres, tori, teapots)
+    cylinders, cones, spheres, tori, teapots, bunnies, etc)
 
 - Animation:
   - Simple linear animations of position, orientation, and scale
