@@ -1,0 +1,23 @@
+<RCC>
+  <qresource prefix="/libcamsim">
+    <file>cg-logo.png</file>
+    <file>simulation-everything-vs.glsl</file>
+    <file>simulation-everything-fs.glsl</file>
+    <file>simulation-oversampling-vs.glsl</file>
+    <file>simulation-oversampling-fs.glsl</file>
+    <file>simulation-pmd-dignums-vs.glsl</file>
+    <file>simulation-pmd-dignums-fs.glsl</file>
+    <file>simulation-whitenoise-vs.glsl</file>
+    <file>simulation-whitenoise-fs.glsl</file>
+    <file>simulation-zero-vs.glsl</file>
+    <file>simulation-zero-fs.glsl</file>
+    <file>simulation-rgb-result-vs.glsl</file>
+    <file>simulation-rgb-result-fs.glsl</file>
+    <file>simulation-pmd-result-vs.glsl</file>
+    <file>simulation-pmd-result-fs.glsl</file>
+    <file>convert-to-srgb-vs.glsl</file>
+    <file>convert-to-srgb-fs.glsl</file>
+    <file>simulation-postproc-lensdistortion-vs.glsl</file>
+    <file>simulation-postproc-lensdistortion-fs.glsl</file>
+  </qresource>
+</RCC>

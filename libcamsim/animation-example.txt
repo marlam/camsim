@@ -1,0 +1,39 @@
+# Empty lines and comment lines are ignored.
+#
+# Each remaining line defines one keyframe, consisting of time, position,
+# rotation, and scale.
+#
+# The default values are time=0, position=0, rotation=0, scale=1.
+#
+# The time is given in seconds. Example 'time 1.0'.
+#
+# The position is given in meters, in one of the following three ways:
+# - cartesian coordinates: x y z
+#   Example 'pos:cart 1.0 2.0 3.0'.
+# - cylindrical coordinates: r phi y (phi=0 is the negative z axis)
+#   Example 'pos:cyl 1.0 30.0 0.0'.
+# - spherical coordinates: r phi theta (phi=theta=0 is the neg. z axis)
+#   Example 'pos:sph 1.0 30.0 15.0'.
+#
+# The rotation is given in one of the following three ways:
+# - axis and angle: x y z alpha
+#   Example: 'rot:axisangle 0 1 0 30'
+# - direction: forward_x forward_y forward_z up_x up_y up_z
+#   Example: 'rot:dir 1 0 0 0 1 0'
+# - euler angles: pitch yaw roll
+#   Example: 'rot:euler 10 20 10'
+#
+# The scale is given as factor for x, y, z. Example 'scale 1 1.5 2'.
+#
+# You can specify time, position, rotation, and scale multiple times
+# for a single keyframe:
+# - Times are added
+# - Positions are added
+# - Rotations are converted to quaternions and multiplied
+# - Scale factors are multiplied
+#
+
+# The object moves from left to right at 5m distance to the origin,
+# and it always looks away from the camera.
+time 0.0   pos:cart -1.0 0.0 -5.0   rot:dir -1.0 0.0 -5.0 0 1 0
+time 5.0   pos:cart +1.0 0.0 -5.0   rot:dir +1.0 0.0 -5.0 0 1 0

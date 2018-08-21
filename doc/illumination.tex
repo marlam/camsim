@@ -1,0 +1,120 @@
+\documentclass[a4paper,11pt,final]{article}
+\usepackage[american]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage[svgnames]{xcolor}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[pdfborder={0 0 0}]{hyperref}
+\usepackage{mathptmx}
+\hypersetup{
+    pdftitle={CamSim Physically-Based Rendering Model},
+    pdfauthor={Martin Lambers}
+} 
+
+\begin{document}
+
+\section*{CamSim illumination model}
+
+This describes the illumination model (direct and single-bounce indirect) used
+in CamSim.
+
+It is based on this paper:
+  M. Lambers, S. Hoberg, A. Kolb:
+  Simulation of Time-of-Flight Sensors for Evaluation of Chip Layout Variants.
+  In IEEE Sensors Journal, 15(7), 2015, pages 4019-4026.
+
+The extension for single-bounce indirect illumination is loosely based on this paper:
+  D. Bulczak, M. Lambers, A. Kolb:
+  Quantified, Interactive Simulation of AMCW ToF Camera Including Multipath
+  Effects.
+  In MDPI Sensors, 18(1), 2018, pages 1424-8220.
+
+\section{Symbols}
+
+\subsection{Radiometric}
+
+$Q$: Radiant energy $[J]$\\
+$P$: Radiant flux (``power'') $[W]$\\
+$I$: Radiant intensity $[W/\mathrm{sr}]$\\
+$L$: Radiance (``radiant flux per unit solid angle per unit projected area'') $[W/\mathrm{sr}/m^2]$\\
+$E$: Irradiance $[W/m^2]$
+
+\subsection{Geometric}
+
+$L$: Light source position\\
+$C$: Camera center position\\
+$P$: Point on object surface seen by camera pixel\\
+$\widehat{n_P}$: Surface normal at $P$\\
+$\theta_{P\rightarrow L}$: Angle between $\widehat{n_P}$ and $\widehat{L-P}$\\
+$Q$: Another point (on another surface) that may act as a virtual point light\\
+$\widehat{n_Q}$: Surface normal at $Q$\\
+$\theta_{Q\rightarrow L}$: Angle between $\widehat{n_Q}$ and $\widehat{L-Q}$
+
+\subsection{Other}
+
+$f_P(\widehat{L-P}, \widehat{n_P}, \widehat{C-P})$: BRDF for $L\rightarrow P\rightarrow C$\\
+$f_Q(\widehat{L-Q}, \widehat{n_Q}, \widehat{P-Q})$: BRDF for $L\rightarrow Q\rightarrow P$\\
+
+
+\section{Direct Illumination}
+
+$I_{L\rightarrow P} = \frac{P_L}{4\pi}$ (if $L$ is point light; there are alternatives)\\
+$L_{L\rightarrow P} = \frac{I_{L\rightarrow P}}{d^2_{L\rightarrow P}}$\\
+$L_{P\rightarrow C} = f_P(\widehat{L-P}, \widehat{n_P}, \widehat{C-P}) L_{L\rightarrow P} \cos(\theta_{P\rightarrow L})$\\
+$E_C = L_{P\rightarrow C}$ ~~~(Note: no factor $\cos(\theta_{C\rightarrow P})$ here)\\
+$P_C = E_C \cdot \mathrm{SensorPixelArea}$\\
+$Q_C = P_C \cdot \mathrm{SignalDutyCycle} \cdot \mathrm{ExposureTime}$
+
+
+\section{Indirect Illumination via Virtual Point Lights}
+
+Start with the Rendering Equation:\\
+$\displaystyle L_{P\rightarrow C} = \int_\Omega f_P(\omega_i, \widehat{n_P}, \widehat{C-P}) L_{i\rightarrow P} \cos(\theta_i) d\omega_i$
+
+\noindent
+Approximate this by splitting into direct and indirect parts, and approximating
+the indirect part with single-bounce RSM VPLs:\\
+$\displaystyle L_{P\rightarrow C} = f_P(\widehat{L-P}, \widehat{n_P}, \widehat{C-P}) L_{L\rightarrow P} \cos(\theta_{P\rightarrow L})
+ + \frac{1}{|\mathrm{RSM}|}\sum_{Q\in \mathrm{RSM}} f_P(\widehat{Q-P}, \widehat{n_P}, \widehat{C-P}) L_{Q\rightarrow P} \cos(\theta_{P\rightarrow Q})$
+
+\noindent
+The direct part is already computed in the direct step as $L_{P\rightarrow C}$. Add the indirect part to it:\\
+$\displaystyle L^*_{P\rightarrow C} = L_{P\rightarrow C}
+ + \frac{1}{|\mathrm{RSM}|}\sum_{Q\in \mathrm{RSM}} f_P(\widehat{Q-P}, \widehat{n_P}, \widehat{C-P}) L_{Q\rightarrow P} \cos(\theta_{P\rightarrow Q})$
+
+\noindent
+using
+$L_{Q\rightarrow P} = f_Q(\widehat{L-Q}, \widehat{n_Q}, \widehat{P-Q}) L_{L\rightarrow Q} \cos(\theta_{Q\rightarrow L})$\\
+and
+$L_{L\rightarrow Q} = \frac{I_{L\rightarrow Q}}{d^2_{L\rightarrow Q}}, \quad I_{L\rightarrow Q} = \frac{P_L}{4\pi}$
+
+
+\section{Values to Store in RSM}
+
+\begin{itemize}
+\item Parameters that allow BRDF sampling at $Q$, e.g. $k_d, k_s, s$ for modified Phong
+\item Position of $Q$ (to perform shadow test and to compute $\widehat{Q-P}$,
+$\theta_{P\rightarrow Q}$, $\widehat{L-Q}$, $\widehat{P-Q}$,$ \theta_{Q\rightarrow L}$)
+\item $\widehat{n_Q}$
+\item $L_{L\rightarrow Q}$
+\end{itemize}
+
+%\section{Notes}
+%
+%\begin{itemize}
+%\item Visibility tests:
+%    \begin{itemize}
+%    \item $P\rightarrow C$: rasterization does this for us
+%    \item $L\rightarrow P$: per shadow map test
+%    \item $L\rightarrow Q$: rasterization of the RSM ensures that only lighted points are in the RSM; this visibility test is implicit
+%    \item $Q\rightarrow P$: not included in original RSM approach, BUT:
+%        \begin{itemize}
+%        \item Project $P$ into RSM of $Q$
+%        \item Cast ray from $Q$ to $P$ and traverse it \textbf{in Q's RSM space}
+%        \item Find obstacles based on depth values
+%        \end{itemize}
+%    \end{itemize}
+%\end{itemize}
+
+\end{document}
