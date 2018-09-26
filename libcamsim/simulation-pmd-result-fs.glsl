@@ -45,12 +45,9 @@ void main(void)
     if (abs(D[0] - D[2]) <= 0.0 && abs(D[1] - D[3]) <= 0.0) {
         range = 0.0;
     } else {
-        /*
-        float phase_shift = atan(D[0] - D[2], D[1] - D[3]) - pi / 2.0;
+        float phase_shift = atan(D[3] - D[1], D[0] - D[2]);
         if (phase_shift < 0.0)
             phase_shift += 2.0 * pi;
-        */
-        float phase_shift = atan(D[3] - D[1], D[0] - D[2]);
         range = frac_c_modfreq * phase_shift / (4.0 * pi);
     }
     float amplitude = sqrt((D[0] - D[2]) * (D[0] - D[2]) + (D[1] - D[3]) * (D[1] - D[3])) * pi / 2.0;
