@@ -25,6 +25,7 @@
 #include <QGuiApplication>
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
+#include <QFile>
 
 #include <camsim/camsim.hpp>
 
