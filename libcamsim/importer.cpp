@@ -149,6 +149,9 @@ void Importer::addLightToScene(int lightSourceIndex, Scene& scene) const
 
     scene.lights.append(light);
     scene.lightAnimations.append(Animation());
+#else
+    Q_UNUSED(lightSourceIndex);
+    Q_UNUSED(scene);
 #endif
 }
 
@@ -343,6 +346,8 @@ void Importer::addObjectToScene(Scene& scene) const
     }
     scene.objects.append(object);
     scene.objectAnimations.append(Animation());
+#else
+    Q_UNUSED(scene);
 #endif
 }
 

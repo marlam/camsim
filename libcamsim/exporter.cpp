@@ -634,6 +634,10 @@ bool Exporter::writeGTA(const QString fileName, const QList<TexData> dataList, c
     }
     return true;
 #else
+    Q_UNUSED(fileName);
+    Q_UNUSED(dataList);
+    Q_UNUSED(channelsList);
+    Q_UNUSED(compressionLevel);
     return false;
 #endif
 }
@@ -693,6 +697,10 @@ bool Exporter::writeMAT(const QString fileName, const QList<TexData> dataList, c
     Mat_Close(mat);
     return true;
 #else
+    Q_UNUSED(fileName);
+    Q_UNUSED(dataList);
+    Q_UNUSED(channelsList);
+    Q_UNUSED(compressionLevel);
     return false;
 #endif
 }
@@ -745,6 +753,10 @@ bool Exporter::writeHDF(const QString fileName, const QList<TexData> dataList, c
     }
     return true;
 #else
+    Q_UNUSED(fileName);
+    Q_UNUSED(dataList);
+    Q_UNUSED(channelsList);
+    Q_UNUSED(compressionLevel);
     return false;
 #endif
 }
