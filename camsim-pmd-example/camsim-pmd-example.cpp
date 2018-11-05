@@ -115,6 +115,9 @@ int main(int argc, char* argv[])
     /* Simulate */
     
     CamSim::Projection projection = CamSim::Projection::fromOpeningAngle(352, 288, 70.0f);
+    qInfo("Camera intrinsic parameters: cx=%g cy=%g fx=%g fy=%g",
+            projection.centerPixel().x(), projection.centerPixel().y(),
+            projection.focalLengths().x(), projection.focalLengths().y());
 
     CamSim::ChipTiming chipTiming;
     chipTiming.exposureTime = 1000e-6;         // realistic: 1000e-6
@@ -153,11 +156,12 @@ int main(int argc, char* argv[])
 
     CamSim::Exporter exporter;
     int frameCounter = 0;
-    QFile::remove("rgb-sub.ppm");
+    QFile::remove("rgb-subframes.ppm");
     QFile::remove("rgb-result.ppm");
-    QFile::remove("pmd-sub.pfs");
-    QFile::remove("depthrange.pfs");
+    QFile::remove("pmd-subframes.pfs");
+    QFile::remove("groundtruth-depthrange.pfs");
     QFile::remove("pmd-result.pfs");
+    QFile::remove("pmd-coordinates.pfs");
     for (long long t = simulator.startTimestamp();
             t < simulator.endTimestamp();
             t = simulator.nextFrameTimestamp()) {
@@ -171,15 +175,39 @@ int main(int argc, char* argv[])
 
         exporter.waitForAsyncExports();
 
-        exporter.asyncExportData("rgb-sub.ppm",
-                { simulator.getSRGB(0), simulator.getSRGB(1), simulator.getSRGB(2), simulator.getSRGB(3) });
-        exporter.asyncExportData("rgb-result.ppm", simulator.getSRGB());
-        exporter.asyncExportData("pmd-sub.pfs",
+        // PMD phase images
+        exporter.asyncExportData("pmd-subframes.pfs",
                 { simulator.getPMD(0), simulator.getPMD(1), simulator.getPMD(2), simulator.getPMD(3) });
+        // RGB results for each sub frame, i.e. each PMD phase image
+        exporter.asyncExportData("rgb-subframes.ppm",
+                { simulator.getSRGB(0), simulator.getSRGB(1), simulator.getSRGB(2), simulator.getSRGB(3) });
+        // PMD simulation result: range, amplitude, intensity
         exporter.asyncExportData("pmd-result.pfs", simulator.getPMD());
-        exporter.asyncExportData("depthrange.pfs",
-                { simulator.getDepthAndRange(0), simulator.getDepthAndRange(1),
-                simulator.getDepthAndRange(2), simulator.getDepthAndRange(3) });
+        // RGB simulation result
+        exporter.asyncExportData("rgb-result.ppm", simulator.getSRGB());
+        // Grount Truth depth and range values
+        exporter.asyncExportData("groundtruth-depthrange.pfs", simulator.getDepthAndRange());
+
+        // PMD simulation produces range data, i.e. the distance to the sensor center.
+        // You can compute 3D cartesian coordinates from range data by using the camera
+        // intrinsic parameters:
+        CamSim::TexData pmdResult = simulator.getPMD();
+        const float* pmdResultData = static_cast<const float*>(pmdResult.packedData());
+        QVector<QVector3D> pmdCoordData(pmdResult.width() * pmdResult.height());
+        for (int y = 0; y < pmdResult.height(); y++) {
+            float v = (y - projection.centerPixel().y()) / projection.focalLengths().y();
+            for (int x = 0; x < pmdResult.width(); x++) {
+                float u = (x - projection.centerPixel().x()) / projection.focalLengths().x();
+                float w = 1.0f;
+                float range = pmdResultData[3 * (y * pmdResult.width() + x) + 0];
+                QVector3D xyz = QVector3D(u, v, w).normalized() * range;
+                pmdCoordData[y * pmdResult.width() + x] = xyz;
+            }
+        }
+        exporter.exportData("pmd-coordinates.pfs", CamSim::TexData(
+                    pmdResult.width(), pmdResult.height(), 3, GL_FLOAT, QByteArray::fromRawData(
+                        reinterpret_cast<const char*>(pmdCoordData.constData()),
+                        pmdCoordData.size() * sizeof(QVector3D))));
 
         frameCounter++;
     }
