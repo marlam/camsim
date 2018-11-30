@@ -278,8 +278,10 @@ public:
     bool rgb;
     /*! \brief Flag: enable output of sRGB colors (only if \a rgb is also true)? */
     bool srgb;
-    /*! \brief Flag: enable output of PMD phase image (energy, A tap, B tap)? */
+    /*! \brief Flag: enable output of PMD results (subframes/phase images and final result)? */
     bool pmd;
+    /*! \brief Flag: enable output of PMD cartesian coordinates (only if \a pmd is also true)? */
+    bool pmdCoordinates;
 
     /*@}*/
 
@@ -362,6 +364,7 @@ private:
     QOpenGLShaderProgram _zeroPrg;               // produce all-zero output
     QOpenGLShaderProgram _rgbResultPrg;          // combine rgb subframes to final result
     QOpenGLShaderProgram _pmdResultPrg;          // combine pmd phase subframes to final result
+    QOpenGLShaderProgram _pmdCoordinatesPrg;     // compute cartesian coordinates from pmd range
     QOpenGLShaderProgram _geomPrg;               // simulate geometry (pos, normals, depth, range, indices) information
     QOpenGLShaderProgram _flowPrg;               // simulate 2D/3D flow information
     QOpenGLShaderProgram _convertToSRGBPrg;      // convert linear RGB to sRGB
@@ -381,6 +384,7 @@ private:
     unsigned int _rgbTexOversampled;
     unsigned int _pmdEnergyTexOversampled;
     unsigned int _pmdEnergyTex;
+    unsigned int _pmdCoordinatesTex;
     unsigned int _gaussianNoiseTex;               // for shot noise generation, dynamically generated
     QVector<float> _gaussianWhiteNoiseBuf;        // reused vector to generate gaussian white noise
     QVector<unsigned int> _gaussianWhiteNoiseTexs;// subFrames
@@ -466,6 +470,7 @@ private:
     void simulateGaussianWhiteNoise(int subFrame);
     void simulateRGBResult();
     void simulatePMDResult();
+    void simulatePMDCoordinates();
     void simulateGeometry(int subFrame);
     void simulateFlow(int subFrame, long long lastT, long long nextT, unsigned int lastDepthBuf);
     void simulatePostprocLensDistortion(const QList<unsigned int>& textures);
@@ -704,6 +709,17 @@ public:
             return TexData(getPMDTex(i), -1, -1, GL_RGB32F, { "range", "amplitude", "intensity" }, _pbo);
         else
             return TexData(getPMDTex(i), -1, -1, GL_RGBA32F, { "a_minus_b", "a_plus_b", "a", "b" }, _pbo);
+    }
+
+    /*! \brief Get the output texture containing PMD simulated cartesian
+     * coordinates. These are computed from the simulated PMD range value, taking the camera intrinsic parameters into
+     * account (image size, center pixel and focal lengths). Note that lens distortion is currently ignored. */
+    unsigned int getPMDCoordinatesTex() const;
+
+    /*! \brief Convenience wrapper for \a getPMDCoordinatesTex() */
+    TexData getPMDCoordinates() const
+    {
+        return TexData(getPMDCoordinatesTex(), -1, -1, GL_RGB32F, { "x", "y", "z" }, _pbo);
     }
 
     /*! \brief Get the output texture containing eye space positions

@@ -15,6 +15,8 @@
     <file>simulation-rgb-result-fs.glsl</file>
     <file>simulation-pmd-result-vs.glsl</file>
     <file>simulation-pmd-result-fs.glsl</file>
+    <file>simulation-pmd-coords-vs.glsl</file>
+    <file>simulation-pmd-coords-fs.glsl</file>
     <file>convert-to-srgb-vs.glsl</file>
     <file>convert-to-srgb-fs.glsl</file>
     <file>simulation-postproc-lensdistortion-vs.glsl</file>

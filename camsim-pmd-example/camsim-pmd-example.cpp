@@ -144,6 +144,7 @@ int main(int argc, char* argv[])
     output.rgb = true;
     output.srgb = true;
     output.pmd = true;
+    output.pmdCoordinates = true;
     output.depthAndRange = true;
 
     CamSim::Simulator simulator;
@@ -183,31 +184,12 @@ int main(int argc, char* argv[])
                 { simulator.getSRGB(0), simulator.getSRGB(1), simulator.getSRGB(2), simulator.getSRGB(3) });
         // PMD simulation result: range, amplitude, intensity
         exporter.asyncExportData("pmd-result.pfs", simulator.getPMD());
+        // PMD simulation results: cartesian coordinates (computed from range)
+        exporter.asyncExportData("pmd-coordinates.pfs", simulator.getPMDCoordinates());
         // RGB simulation result
         exporter.asyncExportData("rgb-result.ppm", simulator.getSRGB());
         // Grount Truth depth and range values
         exporter.asyncExportData("groundtruth-depthrange.pfs", simulator.getDepthAndRange());
-
-        // PMD simulation produces range data, i.e. the distance to the sensor center.
-        // You can compute 3D cartesian coordinates from range data by using the camera
-        // intrinsic parameters:
-        CamSim::TexData pmdResult = simulator.getPMD();
-        const float* pmdResultData = static_cast<const float*>(pmdResult.packedData());
-        QVector<QVector3D> pmdCoordData(pmdResult.width() * pmdResult.height());
-        for (int y = 0; y < pmdResult.height(); y++) {
-            float v = (y - projection.centerPixel().y()) / projection.focalLengths().y();
-            for (int x = 0; x < pmdResult.width(); x++) {
-                float u = (x - projection.centerPixel().x()) / projection.focalLengths().x();
-                float w = 1.0f;
-                float range = pmdResultData[3 * (y * pmdResult.width() + x) + 0];
-                QVector3D xyz = QVector3D(u, v, w).normalized() * range;
-                pmdCoordData[y * pmdResult.width() + x] = xyz;
-            }
-        }
-        exporter.exportData("pmd-coordinates.pfs", CamSim::TexData(
-                    pmdResult.width(), pmdResult.height(), 3, GL_FLOAT, QByteArray::fromRawData(
-                        reinterpret_cast<const char*>(pmdCoordData.constData()),
-                        pmdCoordData.size() * sizeof(QVector3D))));
 
         frameCounter++;
     }

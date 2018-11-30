@@ -183,6 +183,7 @@ Output::Output() :
     rgb(true),
     srgb(false),
     pmd(false),
+    pmdCoordinates(false),
     eyeSpacePositions(false),
     customSpacePositions(false),
     eyeSpaceNormals(false),
@@ -205,6 +206,7 @@ Simulator::Simulator() :
     _rgbTexOversampled(0),
     _pmdEnergyTexOversampled(0),
     _pmdEnergyTex(0),
+    _pmdCoordinatesTex(0),
     _gaussianNoiseTex(0),
     _postProcessingTex(0),
     _fbo(0),
@@ -399,6 +401,7 @@ void Simulator::recreateShadersIfNecessary()
     _zeroPrg.removeAllShaders();
     _rgbResultPrg.removeAllShaders();
     _pmdResultPrg.removeAllShaders();
+    _pmdCoordinatesPrg.removeAllShaders();
     _geomPrg.removeAllShaders();
     _flowPrg.removeAllShaders();
     _convertToSRGBPrg.removeAllShaders();
@@ -654,6 +657,15 @@ void Simulator::recreateShadersIfNecessary()
             _convertToSRGBPrg.addShaderFromSourceCode(QOpenGLShader::Fragment, convFs);
             _convertToSRGBPrg.link();
         }
+        // conversion from PMD range to coordinates
+        if (_output.pmdCoordinates) {
+            QString pmdCoordinatesVs = readFile(":/libcamsim/simulation-pmd-coords-vs.glsl");
+            QString pmdCoordinatesFs = readFile(":/libcamsim/simulation-pmd-coords-fs.glsl");
+            _pmdCoordinatesPrg.addShaderFromSourceCode(QOpenGLShader::Vertex, pmdCoordinatesVs);
+            _pmdCoordinatesPrg.addShaderFromSourceCode(QOpenGLShader::Fragment, pmdCoordinatesFs);
+            _pmdCoordinatesPrg.link();
+            _pmdCoordinatesPrg.bind();
+        }
     }
 
     // Geometry simulation program
@@ -864,6 +876,8 @@ void Simulator::recreateOutputIfNecessary()
     _pmdEnergyTexOversampled = 0;
     gl->glDeleteTextures(1, &_pmdEnergyTex);
     _pmdEnergyTex = 0;
+    gl->glDeleteTextures(1, &_pmdCoordinatesTex);
+    _pmdCoordinatesTex = 0;
     gl->glDeleteTextures(1, &_gaussianNoiseTex);
     _gaussianNoiseTex = 0;
     _gaussianWhiteNoiseBuf.clear();
@@ -994,6 +1008,10 @@ void Simulator::recreateOutputIfNecessary()
         prepareOutputTexs(spatialOversamplingSize(), { _pmdEnergyTexOversampled }, GL_RG32F, false);
         gl->glGenTextures(1, &_pmdEnergyTex);
         prepareOutputTexs(_projection.imageSize(), { _pmdEnergyTex }, GL_RG32F, false);
+        if (_output.pmdCoordinates) {
+            gl->glGenTextures(1, &_pmdCoordinatesTex);
+            prepareOutputTexs(_projection.imageSize(), { _pmdCoordinatesTex }, GL_RGBA32F, false);
+        }
     }
     int extra = (subFrames() > 1 ? 1 : 0);
     if (_output.rgb && _pipeline.gaussianWhiteNoise) {
@@ -1871,6 +1889,24 @@ void Simulator::simulatePMDResult()
     ASSERT_GLCHECK();
 }
 
+void Simulator::simulatePMDCoordinates()
+{
+    auto gl = getGlFunctionsFromCurrentContext(Q_FUNC_INFO);
+    ASSERT_GLCHECK();
+    _pmdCoordinatesPrg.bind();
+    _pmdCoordinatesPrg.setUniformValue("w", static_cast<float>(_projection.imageSize().width()));
+    _pmdCoordinatesPrg.setUniformValue("h", static_cast<float>(_projection.imageSize().height()));
+    _pmdCoordinatesPrg.setUniformValue("fx", _projection.focalLengths().x());
+    _pmdCoordinatesPrg.setUniformValue("fy", _projection.focalLengths().y());
+    _pmdCoordinatesPrg.setUniformValue("cx", _projection.centerPixel().x());
+    _pmdCoordinatesPrg.setUniformValue("cy", _projection.centerPixel().y());
+    gl->glActiveTexture(GL_TEXTURE0);
+    gl->glBindTexture(GL_TEXTURE_2D, _pmdDigNumTexs[subFrames()]);
+    gl->glBindVertexArray(_fullScreenQuadVao);
+    gl->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    ASSERT_GLCHECK();
+}
+
 void Simulator::simulateGeometry(int subFrame)
 {
     simulate(_geomPrg, subFrame,
@@ -2060,6 +2096,10 @@ void Simulator::simulate(long long frameTimestamp)
         if (_output.pmd) {
             prepareFBO(_projection.imageSize(), 0, false, { _pmdDigNumTexs[subFrames()] });
             simulatePMDResult();
+            if (_output.pmdCoordinates) {
+                prepareFBO(_projection.imageSize(), 0, false, { _pmdCoordinatesTex });
+                simulatePMDCoordinates();
+            }
         }
         if (_output.forwardFlow3D || _output.forwardFlow2D || _output.backwardFlow3D || _output.backwardFlow2D) {
             long long lastFrameTimestamp = frameTimestamp - frameDuration();
@@ -2141,6 +2181,11 @@ unsigned int Simulator::getSRGBTex(int i) const
 unsigned int Simulator::getPMDTex(int i) const
 {
     return ((_output.pmd && haveValidOutput(i)) ? (i == -1 ? _pmdDigNumTexs.last() : _pmdDigNumTexs[i]) : 0);
+}
+
+unsigned int Simulator::getPMDCoordinatesTex() const
+{
+    return ((_output.pmd && _output.pmdCoordinates && haveValidOutput(-1)) ? _pmdCoordinatesTex : 0);
 }
 
 unsigned int Simulator::getEyeSpacePositionsTex(int i) const
