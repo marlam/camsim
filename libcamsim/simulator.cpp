@@ -30,6 +30,8 @@
 #include <QtMath>
 #include <QString>
 #include <QFile>
+#include <QOffscreenSurface>
+#include <QOpenGLContext>
 
 #include "simulator.hpp"
 #include "gl.hpp"
@@ -195,6 +197,59 @@ Output::Output() :
     backwardFlow3D(false),
     backwardFlow2D(false)
 {
+}
+
+static void glDebugMessageCallback(
+        GLenum /* source */,
+        GLenum type,
+        GLuint /* id */,
+        GLenum severity,
+        GLsizei /* length */,
+        const GLchar* message,
+        const void* /* userParam */)
+{
+    qDebug("GL%s: type=0x%x severity=0x%x: %s",
+            (type == GL_DEBUG_TYPE_ERROR ? " ERROR" : ""),
+            type, severity, message);
+}
+
+
+Context::Context(bool enableOpenGLDebugging)
+{
+    _surface = new QOffscreenSurface;
+    _surface->create();
+    QSurfaceFormat format;
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(4, 5);
+    if (enableOpenGLDebugging)
+        format.setOption(QSurfaceFormat::DebugContext);
+    _context = new QOpenGLContext;
+    _context->setFormat(format);
+    _context->create();
+    if (!_context->isValid()) {
+        qFatal("Cannot create a valid OpenGL context");
+    }
+    if (_context->format().majorVersion() < 4
+            || (_context->format().majorVersion() == 4 && _context->format().minorVersion() < 5)) {
+        qFatal("Cannot create OpenGL context of version >= 4.5");
+    }
+    makeCurrent();
+    if (enableOpenGLDebugging) {
+        if (!_context->format().testOption(QSurfaceFormat::DebugContext)) {
+            qWarning("OpenGL debugging not available");
+        }
+        auto gl = getGlFunctionsFromCurrentContext(Q_FUNC_INFO);
+        gl->glEnable(GL_DEBUG_OUTPUT);
+        gl->glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        gl->glDebugMessageCallback(glDebugMessageCallback, 0);
+    }
+}
+
+void Context::makeCurrent()
+{
+    if (!_context->makeCurrent(_surface)) {
+        qFatal("Cannot make OpenGL context current");
+    }
 }
 
 Simulator::Simulator() :

@@ -33,6 +33,9 @@
 #include <QVector2D>
 #include <QOpenGLShaderProgram>
 
+class QOffscreenSurface;
+class QOpenGLContext;
+
 #include "scene.hpp"
 #include "animation.hpp"
 #include "texdata.hpp"
@@ -320,6 +323,26 @@ public:
     bool backwardFlow2D;
 
     /*@}*/
+};
+
+/**
+ * \brief Provides a suitable OpenGL context for the simulator and related classes
+ */
+class Context {
+private:
+    // Our private OpenGL context handling
+    QOffscreenSurface* _surface;
+    QOpenGLContext* _context;
+
+public:
+    /*! \brief Constructor */
+    Context(bool enableOpenGLDebugging = false);
+
+    /*! \brief Return the OpenGL context */
+    QOpenGLContext* getOpenGLContext() { return _context; }
+
+    /*! \brief Make this context current */
+    void makeCurrent();
 };
 
 /**
