@@ -41,15 +41,7 @@ int main(int argc, char* argv[])
 
     /* Initialize Qt and an OpenGL context */
     QGuiApplication app(argc, argv);
-    QSurfaceFormat format;
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setVersion(4, 5);
-    QSurfaceFormat::setDefaultFormat(format);
-    QOffscreenSurface surface;
-    surface.create();
-    QOpenGLContext context;
-    context.create();
-    context.makeCurrent(&surface);
+    CamSim::Context context;
 
     /* Create our scene. The model file contains no light sources, so we add our own. */
     CamSim::Scene scene;

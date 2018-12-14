@@ -33,15 +33,7 @@ int main(int argc, char* argv[])
 {
     /* Initialize Qt and an OpenGL context */
     QGuiApplication app(argc, argv);
-    QSurfaceFormat format;
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setVersion(4, 5);
-    QSurfaceFormat::setDefaultFormat(format);
-    QOffscreenSurface surface;
-    surface.create();
-    QOpenGLContext context;
-    context.create();
-    context.makeCurrent(&surface);
+    CamSim::Context context;
 
     /* Define a simple static scene: a look into a very long box.
      * In the simulated PMD results, you should see the range wraparound,
