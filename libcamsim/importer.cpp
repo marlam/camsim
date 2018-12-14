@@ -164,7 +164,7 @@ static unsigned int createTex(
     auto gl = getGlFunctionsFromCurrentContext(Q_FUNC_INFO);
 
     aiString path;
-    aiTextureMapMode mapmode;
+    aiTextureMapMode mapmode = aiTextureMapMode_Decal;
     m->GetTexture(t, i, &path, NULL, NULL, NULL, NULL, &mapmode);
 
     QString fileName = baseDir + '/' + path.C_Str();
