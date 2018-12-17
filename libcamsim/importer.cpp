@@ -164,8 +164,8 @@ static unsigned int createTex(
     auto gl = getGlFunctionsFromCurrentContext(Q_FUNC_INFO);
 
     aiString path;
-    aiTextureMapMode mapmode = aiTextureMapMode_Decal;
-    m->GetTexture(t, i, &path, NULL, NULL, NULL, NULL, &mapmode);
+    aiTextureMapMode mapmode[3] = { aiTextureMapMode_Wrap, aiTextureMapMode_Wrap, aiTextureMapMode_Wrap };
+    m->GetTexture(t, i, &path, NULL, NULL, NULL, NULL, mapmode);
 
     QString fileName = baseDir + '/' + path.C_Str();
     fileName.replace('\\', '/');
@@ -191,7 +191,7 @@ static unsigned int createTex(
             gl->glGenerateMipmap(GL_TEXTURE_2D);
             gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            switch (mapmode) {
+            switch (mapmode[0]) {
             case aiTextureMapMode_Wrap:
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
