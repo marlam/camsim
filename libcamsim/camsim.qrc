@@ -7,10 +7,6 @@
     <file>simulation-oversampling-fs.glsl</file>
     <file>simulation-pmd-dignums-vs.glsl</file>
     <file>simulation-pmd-dignums-fs.glsl</file>
-    <file>simulation-whitenoise-vs.glsl</file>
-    <file>simulation-whitenoise-fs.glsl</file>
-    <file>simulation-zero-vs.glsl</file>
-    <file>simulation-zero-fs.glsl</file>
     <file>simulation-rgb-result-vs.glsl</file>
     <file>simulation-rgb-result-fs.glsl</file>
     <file>simulation-pmd-result-vs.glsl</file>

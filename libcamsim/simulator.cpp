@@ -262,7 +262,6 @@ Simulator::Simulator() :
     _pmdEnergyTexOversampled(0),
     _pmdEnergyTex(0),
     _pmdCoordinatesTex(0),
-    _gaussianNoiseTex(0),
     _postProcessingTex(0),
     _fbo(0),
     _fullScreenQuadVao(0)
@@ -452,8 +451,6 @@ void Simulator::recreateShadersIfNecessary()
     _lightPrg.removeAllShaders();
     _lightOversampledPrg.removeAllShaders();
     _pmdDigNumPrg.removeAllShaders();
-    _gaussianWhiteNoisePrg.removeAllShaders();
-    _zeroPrg.removeAllShaders();
     _rgbResultPrg.removeAllShaders();
     _pmdResultPrg.removeAllShaders();
     _pmdCoordinatesPrg.removeAllShaders();
@@ -579,6 +576,7 @@ void Simulator::recreateShadersIfNecessary()
         lightFs.replace("$LIGHT_SOURCES$", QString::number(_scene.lights.size()));
         lightFs.replace("$OUTPUT_SHADOW_MAP_DEPTH$", "0");
         lightFs.replace("$OUTPUT_RGB$", _output.rgb ? "1" : "0");
+        lightFs.replace("$GAUSSIAN_WHITE_NOISE$", _pipeline.gaussianWhiteNoise ? "1" : "0");
         lightFs.replace("$OUTPUT_PMD$", _output.pmd ? "1" : "0");
         lightFs.replace("$OUTPUT_EYE_SPACE_POSITIONS$", "0");
         lightFs.replace("$OUTPUT_CUSTOM_SPACE_POSITIONS$", "0");
@@ -634,7 +632,7 @@ void Simulator::recreateShadersIfNecessary()
                 tmpFloat[i] = lightIntensity(i);
             _lightPrg.setUniformValueArray("light_intensity", tmpFloat.constData(), _scene.lights.size(), 1);
         }
-        // additional simple programs for oversampling, white noise, and subframe combination
+        // additional simple programs for oversampling and subframe combination
         QString lightOversampledVs = readFile(":/libcamsim/simulation-oversampling-vs.glsl");
         QString lightOversampledFs = readFile(":/libcamsim/simulation-oversampling-fs.glsl");
         lightOversampledFs.replace("$TWO_INPUTS$", (_output.rgb && _output.pmd ? "1" : "0"));
@@ -662,21 +660,7 @@ void Simulator::recreateShadersIfNecessary()
             _pmdDigNumPrg.link();
             _pmdDigNumPrg.bind();
             _pmdDigNumPrg.setUniformValue("pmd_energies", 0);
-            _pmdDigNumPrg.setUniformValue("gaussian_noise_tex", 1);
         }
-        QString gaussianWhiteNoiseVs = readFile(":/libcamsim/simulation-whitenoise-vs.glsl");
-        QString gaussianWhiteNoiseFs = readFile(":/libcamsim/simulation-whitenoise-fs.glsl");
-        _gaussianWhiteNoisePrg.addShaderFromSourceCode(QOpenGLShader::Vertex, gaussianWhiteNoiseVs);
-        _gaussianWhiteNoisePrg.addShaderFromSourceCode(QOpenGLShader::Fragment, gaussianWhiteNoiseFs);
-        _gaussianWhiteNoisePrg.link();
-        _gaussianWhiteNoisePrg.bind();
-        _gaussianWhiteNoisePrg.setUniformValue("noise_tex", 0);
-        QString zeroVs = readFile(":/libcamsim/simulation-zero-vs.glsl");
-        QString zeroFs = readFile(":/libcamsim/simulation-zero-fs.glsl");
-        zeroFs.replace("$TWO_OUTPUTS$", (_output.rgb && _output.pmd ? "1" : "0"));
-        _zeroPrg.addShaderFromSourceCode(QOpenGLShader::Vertex, zeroVs);
-        _zeroPrg.addShaderFromSourceCode(QOpenGLShader::Fragment, zeroFs);
-        _zeroPrg.link();
         if (subFrames() > 1) {
             if (_output.rgb) {
                 QString rgbResultVs = readFile(":/libcamsim/simulation-rgb-result-vs.glsl");
@@ -933,11 +917,6 @@ void Simulator::recreateOutputIfNecessary()
     _pmdEnergyTex = 0;
     gl->glDeleteTextures(1, &_pmdCoordinatesTex);
     _pmdCoordinatesTex = 0;
-    gl->glDeleteTextures(1, &_gaussianNoiseTex);
-    _gaussianNoiseTex = 0;
-    _gaussianWhiteNoiseBuf.clear();
-    gl->glDeleteTextures(_gaussianWhiteNoiseTexs.size(), _gaussianWhiteNoiseTexs.constData());
-    _gaussianWhiteNoiseTexs.clear();
     gl->glDeleteTextures(_depthBuffers.size(), _depthBuffers.constData());
     _depthBuffers.clear();
     gl->glDeleteTextures(_rgbTexs.size(), _rgbTexs.constData());
@@ -1069,12 +1048,6 @@ void Simulator::recreateOutputIfNecessary()
         }
     }
     int extra = (subFrames() > 1 ? 1 : 0);
-    if (_output.rgb && _pipeline.gaussianWhiteNoise) {
-        _gaussianWhiteNoiseBuf.resize(3 * _projection.imageSize().width() * _projection.imageSize().height());
-        _gaussianWhiteNoiseTexs.resize(subFrames());
-        gl->glGenTextures(subFrames(), _gaussianWhiteNoiseTexs.data());
-        prepareOutputTexs(_projection.imageSize(), _gaussianWhiteNoiseTexs, GL_RGBA32F, false);
-    }
     _depthBuffers.resize(subFrames() + 1);
     gl->glGenTextures(subFrames() + 1, _depthBuffers.data());
     prepareDepthBuffers(_projection.imageSize(), _depthBuffers);
@@ -1093,10 +1066,6 @@ void Simulator::recreateOutputIfNecessary()
         _pmdDigNumTexs.resize(subFrames() + extra);
         gl->glGenTextures(subFrames() + extra, _pmdDigNumTexs.data());
         prepareOutputTexs(_projection.imageSize(), _pmdDigNumTexs, GL_RGBA32F, interpolation);
-        if (_pipeline.shotNoise) {
-            gl->glGenTextures(1, &_gaussianNoiseTex);
-            prepareOutputTexs(_projection.imageSize(), { _gaussianNoiseTex }, GL_RG32F, false);
-        }
     }
     if (_output.eyeSpacePositions) {
         _eyeSpacePosTexs.resize(subFrames());
@@ -1589,6 +1558,22 @@ void Simulator::simulate(
 
     // Set dynamic light properties. This is costly; do it only when we actually use light sources
     if (&prg == &_lightPrg) {
+        if (_output.rgb && _pipeline.gaussianWhiteNoise) {
+            QVector4D rn0, rn1;
+            std::uniform_real_distribution<float> distribution(0.0f, 1000.0f);
+            rn0.setX(distribution(_randomGenerator));
+            rn0.setY(distribution(_randomGenerator));
+            rn0.setZ(distribution(_randomGenerator));
+            rn0.setW(distribution(_randomGenerator));
+            rn1.setX(distribution(_randomGenerator));
+            rn1.setY(distribution(_randomGenerator));
+            rn1.setZ(distribution(_randomGenerator));
+            rn1.setW(distribution(_randomGenerator));
+            prg.setUniformValue("random_noise_0", rn0);
+            prg.setUniformValue("random_noise_1", rn1);
+            prg.setUniformValue("gwn_stddev", _pipeline.gaussianWhiteNoiseStddev);
+            prg.setUniformValue("gwn_mean", _pipeline.gaussianWhiteNoiseMean);
+        }
         int samplersForPowerFactorMaps = (_pipeline.lightPowerFactorMaps ? _scene.lights.size() : 0);
         int samplersForShadowMaps = (_pipeline.shadowMaps ? _scene.lights.size() : 0);
         QVector<float> tmpVec3_0(3 * _scene.lights.size());
@@ -1861,55 +1846,18 @@ void Simulator::simulatePMDDigNums()
     _pmdDigNumPrg.setUniformValue("wavelength", _pmd.wavelength);
     _pmdDigNumPrg.setUniformValue("quantum_efficiency", _pmd.quantumEfficiency);
     _pmdDigNumPrg.setUniformValue("max_electrons", _pmd.maxElectrons);
+    if (_pipeline.shotNoise) {
+        QVector4D rn;
+        std::uniform_real_distribution<float> distribution(0.0f, 1000.0f);
+        rn.setX(distribution(_randomGenerator));
+        rn.setY(distribution(_randomGenerator));
+        rn.setZ(distribution(_randomGenerator));
+        rn.setW(distribution(_randomGenerator));
+        _pmdDigNumPrg.setUniformValue("random_noise", rn);
+    }
     gl->glActiveTexture(GL_TEXTURE0);
     gl->glBindTexture(GL_TEXTURE_2D, _pmdEnergyTex);
-    if (_pipeline.shotNoise) {
-        // generate standard normal distributed noise
-        std::normal_distribution<float> distribution(0.0f, 1.0f);
-        auto gaussianRandomNumber = [&distribution, this]() { return distribution(_randomGenerator); };
-        auto bufferSize = 2 * _projection.imageSize().width() * _projection.imageSize().height();
-        QVector<float> buffer(bufferSize);
-        for (int i = 0; i < bufferSize; i++)
-            buffer[i] = gaussianRandomNumber();
-        gl->glActiveTexture(GL_TEXTURE1);
-        glUploadTex(_pbo, _gaussianNoiseTex,
-                _projection.imageSize().width(), _projection.imageSize().height(),
-                GL_RG32F, GL_RG, GL_FLOAT,
-                buffer.constData(), buffer.size() * sizeof(float));
-        gl->glBindTexture(GL_TEXTURE_2D, _gaussianNoiseTex);
-    }
     gl->glBindVertexArray(_fullScreenQuadVao);
-    gl->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    ASSERT_GLCHECK();
-}
-
-void Simulator::simulateGaussianWhiteNoise(int subFrame)
-{
-    // create new gaussian white noise texture for each (sub)frame
-    std::normal_distribution<float> distribution(
-            _pipeline.gaussianWhiteNoiseMean,
-            _pipeline.gaussianWhiteNoiseStddev);
-    for (int i = 0; i < _gaussianWhiteNoiseBuf.size(); i++)
-        _gaussianWhiteNoiseBuf[i] = distribution(_randomGenerator);
-
-    auto gl = getGlFunctionsFromCurrentContext(Q_FUNC_INFO);
-    ASSERT_GLCHECK();
-    _gaussianWhiteNoisePrg.bind();
-    glUploadTex(_pbo, _gaussianWhiteNoiseTexs[subFrame],
-            _projection.imageSize().width(), _projection.imageSize().height(),
-            GL_RGB32F, GL_RGB, GL_FLOAT,
-            _gaussianWhiteNoiseBuf.constData(), _gaussianWhiteNoiseBuf.size() * sizeof(float));
-    gl->glActiveTexture(GL_TEXTURE0);
-    gl->glBindTexture(GL_TEXTURE_2D, _gaussianWhiteNoiseTexs[subFrame]);
-    gl->glBindVertexArray(_fullScreenQuadVao);
-    gl->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    ASSERT_GLCHECK();
-    // now we have added the noise to the FBO via additive blending,
-    // but we might have created negative energy values which does not make sense.
-    // remove these via max-blending with 0
-    _zeroPrg.bind();
-    gl->glBlendEquation(GL_MAX);
-    gl->glEnable(GL_BLEND);
     gl->glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     ASSERT_GLCHECK();
 }
@@ -2071,10 +2019,6 @@ void Simulator::simulate(long long frameTimestamp)
             if (_pipeline.postprocLensDistortion) {
                 simulatePostprocLensDistortion(_lightSimOutputTexs[subFrame]);
             }
-            if (_output.rgb && _pipeline.gaussianWhiteNoise) {
-                prepareFBO(_projection.imageSize(), 0, false, { _rgbTexs[subFrame] }, -1, 0, true, false);
-                simulateGaussianWhiteNoise(subFrame);
-            }
             if (_output.srgb) {
                 prepareFBO(_projection.imageSize(), 0, false, { _srgbTexs[subFrame] });
                 convertToSRGB(subFrame);
@@ -2205,11 +2149,6 @@ unsigned int Simulator::getReflectiveShadowMapCubeArrayTex(int lightIndex, int i
 {
     return ((haveValidOutput(i) && haveReflectiveShadowMap(lightIndex))
             ? (i == -1 ? _reflectiveShadowMapTexs[0][lightIndex] : _reflectiveShadowMapTexs[i][lightIndex]) : 0);
-}
-
-unsigned int Simulator::getGaussianWhiteNoiseTex(int i) const
-{
-    return ((_output.rgb && _pipeline.gaussianWhiteNoise && haveValidOutput(i)) ? (i == -1 ? _gaussianWhiteNoiseTexs[0] : _gaussianWhiteNoiseTexs[i]) : 0);
 }
 
 unsigned int Simulator::getDepthTex(int i) const

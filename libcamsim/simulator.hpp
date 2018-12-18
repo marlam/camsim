@@ -383,8 +383,6 @@ private:
     QOpenGLShaderProgram _lightPrg;              // simulate rgb and pmd phase for current time stamp
     QOpenGLShaderProgram _lightOversampledPrg;   // reduce spatially oversampled rgb and pmd phase
     QOpenGLShaderProgram _pmdDigNumPrg;          // convert energies to PMD digital numbers, possibly with shot noise
-    QOpenGLShaderProgram _gaussianWhiteNoisePrg; // add gaussian white noise
-    QOpenGLShaderProgram _zeroPrg;               // produce all-zero output
     QOpenGLShaderProgram _rgbResultPrg;          // combine rgb subframes to final result
     QOpenGLShaderProgram _pmdResultPrg;          // combine pmd phase subframes to final result
     QOpenGLShaderProgram _pmdCoordinatesPrg;     // compute cartesian coordinates from pmd range
@@ -408,9 +406,6 @@ private:
     unsigned int _pmdEnergyTexOversampled;
     unsigned int _pmdEnergyTex;
     unsigned int _pmdCoordinatesTex;
-    unsigned int _gaussianNoiseTex;               // for shot noise generation, dynamically generated
-    QVector<float> _gaussianWhiteNoiseBuf;        // reused vector to generate gaussian white noise
-    QVector<unsigned int> _gaussianWhiteNoiseTexs;// subFrames
     QVector<unsigned int> _depthBuffers;          // subFrames+1
     QVector<unsigned int> _rgbTexs;               // subFrames+1
     QVector<unsigned int> _srgbTexs;              // subFrames+1
@@ -490,7 +485,6 @@ private:
             const QVector<Transformation>& objectTransformations);
     void simulateOversampledLight();
     void simulatePMDDigNums();
-    void simulateGaussianWhiteNoise(int subFrame);
     void simulateRGBResult();
     void simulatePMDResult();
     void simulatePMDCoordinates();
@@ -681,15 +675,6 @@ public:
      * that gets the BRDF specular parameter data. */
     TexData getReflectiveShadowMapBRDFSpecularParameters(int lightIndex, int cubeSide, int i = -1) const
     { return TexData(getReflectiveShadowMapCubeArrayTex(lightIndex, i), cubeSide, 4, GL_RGBA32F, { "ksr", "ksg", "ksb", "shininess" }, _pbo); }
-
-    /*! \brief Get the texture containing gaussian white noise applied to RGB simulation
-     * results. This is floating point texture where three components contain independent noise values.
-     * The texture returned is for the given subframe \a i or the final result (if \a i is -1). */
-    unsigned int getGaussianWhiteNoiseTex(int i = -1) const;
-
-    /*! \brief Convenience wrapper for \a getGaussianWhiteNoiseTex() */
-    TexData getGaussianWhiteNoise(int i = -1) const
-    { return TexData(getGaussianWhiteNoiseTex(i), -1, -1, GL_RGB32F, { "noise_a", "noise_b", "noise_c" }, _pbo); }
 
     /*! \brief Get the output texture containing OpenGL depth buffer data
      * for the given subframe \a i or the final result (if \a i is -1)

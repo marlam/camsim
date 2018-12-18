@@ -30,13 +30,31 @@ uniform sampler2D pmd_energies;
 uniform float wavelength;               // in nm = 1e-9m
 uniform float quantum_efficiency;
 uniform int max_electrons;              // maximum number of electrons per pixel
-#if $SHOT_NOISE$
-uniform sampler2D gaussian_noise_tex;
-#endif
 
 smooth in vec2 vtexcoord;
 
 layout(location = 0) out vec4 pmd_dignums;
+
+
+#if $SHOT_NOISE$
+
+uniform vec4 random_noise; /* uniformly distributed in [0,1000]; to be set for each frame */
+
+float rnd_uniform(vec2 n)
+{
+    float r = fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453); /* in [0,1) */
+    return 1.0 - r; /* in (0,1]; it is important for Box-Mueller transform that we do not return 0 */
+}
+
+vec2 rnd_gauss(vec2 texcoord, vec4 random_offset)
+{
+    const float two_pi = 6.28318530718;
+    // Box-Mueller transform
+    vec2 u = vec2(rnd_uniform(texcoord + random_offset.xy), rnd_uniform(texcoord + random_offset.zw));
+    return sqrt(-2.0 * log(u.x)) * vec2(cos(two_pi * u.y), sin(two_pi * u.y));
+}
+
+#endif
 
 void main(void)
 {
@@ -45,7 +63,7 @@ void main(void)
     vec2 electrons = ((quantum_efficiency * wavelength * energies) / hc) / 10000.0;
 #if $SHOT_NOISE$
     // Approximation of poisson noise
-    electrons += sqrt(electrons) * texture(gaussian_noise_tex, vtexcoord).rg;
+    electrons += sqrt(electrons) * rnd_gauss(vtexcoord, random_noise);
 #endif
     // transform electrons to range [0, 1]
     vec2 dignums = clamp(electrons, vec2(0.0), vec2(max_electrons)) / vec2(max_electrons);

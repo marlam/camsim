@@ -137,6 +137,24 @@ smooth in float discardTriangle;
 
 #if $OUTPUT_RGB$
 layout(location = $OUTPUT_RGB_LOCATION$) out vec3 output_rgb;
+# if $GAUSSIAN_WHITE_NOISE$
+uniform vec4 random_noise_0; /* uniformly distributed in [0,1000]; to be set for each frame */
+uniform vec4 random_noise_1; /* uniformly distributed in [0,1000]; to be set for each frame */
+uniform float gwn_stddev;
+uniform float gwn_mean;
+float rnd_uniform(vec2 n)
+{
+    float r = fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453); /* in [0,1) */
+    return 1.0 - r; /* in (0,1]; it is important for Box-Mueller transform that we do not return 0 */
+}
+vec2 rnd_gauss(vec2 texcoord, vec4 random_offset)
+{
+    const float two_pi = 6.28318530718;
+    // Box-Mueller transform
+    vec2 u = vec2(rnd_uniform(texcoord + random_offset.xy), rnd_uniform(texcoord + random_offset.zw));
+    return sqrt(-2.0 * log(u.x)) * vec2(cos(two_pi * u.y), sin(two_pi * u.y));
+}
+# endif
 #endif
 #if $OUTPUT_PMD$
 layout(location = $OUTPUT_PMD_LOCATION$) out vec2 output_pmd;
@@ -540,6 +558,11 @@ void main(void)
 #endif
 #if $OUTPUT_RGB$
     output_rgb = (lightness * (emissive_color + ambient_color) + total_color) / float(temporal_samples);
+# if $GAUSSIAN_WHITE_NOISE$
+    vec2 gwn0 = gwn_stddev * rnd_gauss(vtexcoord, random_noise_0) + gwn_mean;
+    vec2 gwn1 = gwn_stddev * rnd_gauss(vtexcoord, random_noise_1) + gwn_mean;
+    output_rgb = max(vec3(0.0), output_rgb + vec3(gwn0.xy, gwn1.x));
+# endif
 #endif
 #if $OUTPUT_PMD$
     output_pmd = vec2(total_energy_a, total_energy_b);
