@@ -30,7 +30,11 @@
 
 /* This example uses CamSim::Importer to import the Crytek Sponza model
  * available here: http://casual-effects.com/data/
- * You need to build libcamsim with the ASSIMP library for this to work. */
+ *
+ * You need to build libcamsim with the ASSIMP library for this to work.
+ * Also, on Debian and Ubuntu systems, please install the package
+ * qt5-image-formats-plugins so that Qt can import textures in TGA format.
+ */
 
 int main(int argc, char* argv[])
 {
