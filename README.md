@@ -60,6 +60,7 @@ Features:
 
 Only [Qt](https://www.qt.io/) is required, nothing else. You can *optionally*
 use external libraries to extent functionality:
+
 - [libassimp](http://www.assimp.org/): import arbitrary 3D models
 - [libmatio](https://sourceforge.net/projects/matio/): export to Matlab .mat files
 - [libhdf5](https://support.hdfgroup.org/HDF5/): export to .h5 files
