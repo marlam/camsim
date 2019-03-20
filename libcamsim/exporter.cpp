@@ -413,7 +413,7 @@ bool Exporter::writeCSV(const QString fileName, const QList<TexData> dataList, c
                         element.append(QString::number(*(static_cast<const unsigned int*>(p))));
                         break;
                     case GL_FLOAT:
-                        element.append(QString::number(*(static_cast<const unsigned int*>(p)), 'g', 9));
+                        element.append(QString::number(*(static_cast<const float*>(p)), 'g', 9));
                         break;
                     }
                     if (x != data.width() - 1)
