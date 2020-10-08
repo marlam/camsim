@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 
     CamSim::Material boxMaterial;
     boxMaterial.isTwoSided = true; // we are inside the box
-    boxMaterial.diffuse = QVector3D(0.75f, 0.75f, 0.75f);
+    boxMaterial.diffuse = QVector3D(0.5f, 0.5f, 0.5f);
     boxMaterial.specular = QVector3D(0.0f, 0.0f, 0.0f);
     int boxMaterialIndex = scene.addMaterial(boxMaterial);
     CamSim::Transformation boxTransformation;
@@ -51,18 +51,18 @@ int main(int argc, char* argv[])
     generator.addCubeToScene(scene, boxMaterialIndex, boxTransformation);
 
     CamSim::Material planeMaterial;
-    planeMaterial.diffuse = 1.0f * QVector3D(0.5f, 0.5f, 0.75f);
-    planeMaterial.specular = 0.5f * planeMaterial.diffuse;
-    planeMaterial.shininess = 100.0f;
+    planeMaterial.diffuse = QVector3D(0.5f, 0.5f, 0.75f);
+    planeMaterial.specular = QVector3D(0.125f, 0.125f, 0.25f);
+    planeMaterial.shininess = 500.0f;
     int planeMaterialIndex = scene.addMaterial(planeMaterial);
     CamSim::Transformation planeTransformation;
     planeTransformation.rotation = QQuaternion::fromAxisAndAngle(1.0f, 0.0f, 0.0f, -90.0f);
     generator.addQuadToScene(scene, planeMaterialIndex, planeTransformation);
 
     CamSim::Material torusMaterial;
-    torusMaterial.diffuse = 1.0f * QVector3D(0.5f, 0.75f, 0.5f);
-    torusMaterial.specular = 0.5f * torusMaterial.diffuse;
-    torusMaterial.shininess = 100.0f;
+    torusMaterial.diffuse = QVector3D(0.5f, 0.75f, 0.5f);
+    torusMaterial.specular = QVector3D(0.125f, 0.25f, 0.125f);
+    torusMaterial.shininess = 500.0f;
     int torusMaterialIndex = scene.addMaterial(torusMaterial);
     CamSim::Transformation torusTransformation;
     torusTransformation.translation = QVector3D(0.3f, 0.2f, 0.0f);
@@ -72,9 +72,9 @@ int main(int argc, char* argv[])
     generator.addTorusToScene(scene, torusMaterialIndex, torusTransformation);
 
     CamSim::Material sphereMaterial;
-    sphereMaterial.diffuse = 0.5f * QVector3D(0.75f, 0.5f, 0.5f);
-    sphereMaterial.specular = 0.5f * sphereMaterial.diffuse;
-    sphereMaterial.shininess = 100.0f;
+    sphereMaterial.diffuse = QVector3D(0.75f, 0.5f, 0.5f);
+    sphereMaterial.specular = QVector3D(0.25f, 0.125f, 0.125f);
+    sphereMaterial.shininess = 500.0f;
     int sphereMaterialIndex = scene.addMaterial(sphereMaterial);
     for (int i = 0; i < 4; i++) {
         CamSim::Animation sphereAnimation;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
         scene.addLight(light, lightAnimation);
         CamSim::Transformation lightBallBaseTransformation;
         lightBallBaseTransformation.translation = light.position;
-        lightBallBaseTransformation.scaling = QVector3D(0.03f, 0.03f, 0.03f);
+        lightBallBaseTransformation.scaling = QVector3D(0.1f, 0.1f, 0.1f);
         generator.addSphereToScene(scene, lightBallMaterialIndex, lightBallBaseTransformation, lightAnimation);
     }
 
@@ -142,8 +142,8 @@ int main(int argc, char* argv[])
     CamSim::Projection projection = CamSim::Projection::fromOpeningAngle(512, 512, 110.0f);
 #else
     cameraTransformation.translation = QVector3D(0.0f, 2.5f, 3.0f);
-    cameraTransformation.rotation = QQuaternion::fromAxisAndAngle(1.0f, 0.0f, 0.0f, -35.0f);
-    CamSim::Projection projection = CamSim::Projection::fromOpeningAngle(800, 600, 45.0f);
+    cameraTransformation.rotation = QQuaternion::fromAxisAndAngle(1.0f, 0.0f, 0.0f, -32.0f);
+    CamSim::Projection projection = CamSim::Projection::fromOpeningAngle(800, 600, 40.0f);
 #endif
     CamSim::ChipTiming chipTiming = CamSim::ChipTiming::fromSubFramesPerSecond(25.0f);
     CamSim::Pipeline pipeline;
@@ -151,6 +151,7 @@ int main(int argc, char* argv[])
     pipeline.shadowMaps = true;
     pipeline.shadowMapFiltering = true;
     pipeline.reflectiveShadowMaps = false; // this scene is bad for RSM because of the missing visibility test
+    pipeline.temporalSamples = 16;
     CamSim::Output output;
     output.rgb = true;
     output.srgb = true;
