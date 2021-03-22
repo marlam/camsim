@@ -94,8 +94,8 @@ QSize Projection::imageSize() const
 QVector2D Projection::centerPixel() const
 {
     return QVector2D(
-        _r / (_r - _l) * _w,
-        _t / (_t - _b) * _h);
+        _r / (_r - _l) * _w - 0.5f,
+        _t / (_t - _b) * _h - 0.5f);
 }
 
 QVector2D Projection::focalLengths() const
@@ -129,10 +129,10 @@ Projection Projection::fromOpeningAngle(int imageWidth, int imageHeight, float f
 Projection Projection::fromIntrinsics(int imageWidth, int imageHeight, float centerX, float centerY, float focalLengthX, float focalLengthY)
 {
     float r_minus_l = imageWidth / focalLengthX;
-    float l = -centerX * r_minus_l / imageWidth;
+    float l = -(centerX + 0.5f) * r_minus_l / imageWidth;
     float r = r_minus_l + l;
     float t_minus_b = imageHeight / focalLengthY;
-    float b = -centerY * t_minus_b / imageHeight;
+    float b = -(centerY + 0.5f) * t_minus_b / imageHeight;
     float t = t_minus_b + b;
     return fromFrustum(imageWidth, imageHeight, l, r, b, t);
 }
