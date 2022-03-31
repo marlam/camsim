@@ -77,8 +77,8 @@ bool Importer::import(const QString& fileName)
             | aiProcess_Debone
             | aiProcess_RemoveRedundantMaterials
             | aiProcess_Triangulate
-            | aiProcess_GenUVCoords
             | aiProcess_SortByPType
+            | aiProcess_GenUVCoords
             | aiProcess_FindInvalidData
             | aiProcess_FindInstances
             | aiProcess_ValidateDataStructure
@@ -279,7 +279,7 @@ void Importer::addObjectToScene(Scene& scene) const
     for (unsigned int i = 0; i < _internals->scene->mNumMeshes; i++) {
         Shape shape;
         const aiMesh* m = _internals->scene->mMeshes[i];
-        if (m->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
+        if (!(m->mPrimitiveTypes & aiPrimitiveType_TRIANGLE)) {
             qWarning("%s: ignoring shape %u because it is not triangle-based", qPrintable(_fileName), i);
             continue;
         }
