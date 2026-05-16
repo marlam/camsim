@@ -2,6 +2,7 @@
  * Copyright (C) 2012, 2013, 2014, 2017, 2018
  * Computer Graphics Group, University of Siegen, Germany.
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>.
+ * Copyright (C) 2026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -135,7 +136,7 @@ bool Animation::load(const QString& filename)
         if (line.isEmpty() || line.startsWith('#'))
             continue;
         Keyframe keyframe;
-        QStringList tokens = line.simplified().split(' ', QString::SkipEmptyParts);
+        QStringList tokens = line.simplified().split(' ', Qt::SkipEmptyParts);
         int i = 0;
         while (i < tokens.size()) {
             if (tokens[i] == "time" && i + 1 < tokens.size()) {

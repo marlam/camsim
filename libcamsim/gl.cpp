@@ -2,6 +2,7 @@
  * Copyright (C) 2017, 2018
  * Computer Graphics Group, University of Siegen
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>
+ * Copyright (C) 2026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +27,7 @@
 #include <cstring>
 
 #include <QOpenGLContext>
+#include <QOpenGLVersionFunctionsFactory>
 
 #include "gl.hpp"
 
@@ -39,7 +41,7 @@ QOpenGLFunctions_4_5_Core* getGlFunctionsFromCurrentContext(const char* callingF
         qCritical("%s", callingFunction);
         std::exit(1);
     }
-    QOpenGLFunctions_4_5_Core* funcs = ctx->versionFunctions<QOpenGLFunctions_4_5_Core>();
+    QOpenGLFunctions_4_5_Core* funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_5_Core>(ctx);
     if (!funcs) {
         qCritical("Cannot obtain required OpenGL context version in the following function:");
         qCritical("%s", callingFunction);

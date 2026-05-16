@@ -6,7 +6,7 @@
 # permitted in any medium without royalty provided the copyright notice and this
 # notice are preserved. This file is offered as-is, without any warranty.
 
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.12)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR} ${CMAKE_MODULE_PATH})
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -22,12 +22,9 @@ option(CAMSIM_BUILD_DOCUMENTATION "Build API reference documentation (requires D
 
 # Compiler and system
 set(CMAKE_CXX_STANDARD 14)
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-endif()
 
 # Required libraries
-find_package(Qt5 5.6.0 COMPONENTS Gui Concurrent)
+find_package(Qt6 6.6.0 COMPONENTS Gui Concurrent OpenGL)
 
 # Optional libraries
 find_package(assimp QUIET)
@@ -36,7 +33,7 @@ find_package(MATIO QUIET)
 find_package(HDF5 COMPONENTS CXX QUIET)
 
 # The CAMSIM library
-qt5_add_resources(CAMSIMRESOURCES camsim.qrc)
+qt6_add_resources(CAMSIMRESOURCES camsim.qrc)
 set_property(SOURCE qrc_camsim.cpp PROPERTY SKIP_AUTOMOC ON)
 add_library(libcamsim SHARED
     transformation.hpp transformation.cpp
@@ -58,7 +55,7 @@ set_target_properties(libcamsim PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 set_target_properties(libcamsim PROPERTIES OUTPUT_NAME camsim)
 set_target_properties(libcamsim PROPERTIES VERSION ${CAMSIM_LIBVERSION})
 set_target_properties(libcamsim PROPERTIES SOVERSION ${CAMSIM_SOVERSION})
-target_link_libraries(libcamsim Qt5::Gui Qt5::Concurrent)
+target_link_libraries(libcamsim Qt6::Gui Qt6::Concurrent Qt6::OpenGL)
 if(assimp_FOUND)
     add_definitions(-DHAVE_ASSIMP)
     include_directories(${ASSIMP_INCLUDE_DIRS})

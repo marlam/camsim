@@ -2,6 +2,7 @@
  * Copyright (C) 2017, 2018
  * Computer Graphics Group, University of Siegen
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>
+ * Copyright (C) 2026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +44,7 @@ TexData::TexData() :
 TexData::TexData(int w, int h, int channels, int type, const QByteArray& packedData, const QList<QString>& names) :
     _w(w), _h(h), _type(type), _channels(channels), _packedData(packedData)
 {
-    for (int i = 0; i < std::min(channels, names.size()); i++)
+    for (int i = 0; i < std::min(channels, int(names.size())); i++)
         _names[i] = names[i];
 }
 
@@ -140,7 +141,7 @@ void TexData::setTexture(unsigned int tex, int cubeSide, int arrayLayer, int ret
     _h = texH;
     _type = texType;
     _channels = texChannels;
-    for (int i = 0; i < std::min(_channels, names.size()); i++)
+    for (int i = 0; i < std::min(_channels, int(names.size())); i++)
         _names[i] = names[i];
 
     _packedData.resize(packedDataSize());
