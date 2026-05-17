@@ -3,6 +3,7 @@
  * Computer Graphics Group, University of Siegen
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>,
  * Hendrik Sommerhoff <hendrik.sommerhoff@student.uni-siegen.de>
+ * Copyright (C) 20026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -392,12 +393,16 @@ long long Simulator::nextFrameTimestamp()
     }
 }
 
-static QString readFile(const QString& filename)
+static QString readFile(const QString& fileName)
 {
-    QFile f(filename);
-    f.open(QIODevice::ReadOnly);
-    QTextStream in(&f);
-    return in.readAll();
+    QString s;
+    QFile f(fileName);
+    bool ok = f.open(QIODevice::ReadOnly);
+    if (ok) {
+        QTextStream in(&f);
+        s = in.readAll();
+    }
+    return s;
 }
 
 void Simulator::recreateShadersIfNecessary()

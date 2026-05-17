@@ -2,6 +2,7 @@
  * Copyright (C) 2017, 2018
  * Computer Graphics Group, University of Siegen
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>
+ * Copyright (C) 2026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -493,7 +494,7 @@ bool Exporter::writePFS(const QString fileName, const QList<TexData> dataList, c
     for (int i = 0; i < dataList.size(); i++) {
         const TexData& data = dataList[i];
         const QList<int>& channels = channelsList[i];
-        std::fprintf(f, "PFS1\n%d %d\n%d\n0\n", data.width(), data.height(), channels.size());
+        std::fprintf(f, "PFS1\n%d %d\n%d\n0\n", data.width(), data.height(), int(channels.size()));
         for (int c = 0; c < channels.size(); c++) {
             QString channelName = data.channelName(channels[c]);
             if (channelName.isEmpty()) {

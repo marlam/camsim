@@ -2,6 +2,7 @@
  * Copyright (C) 2016, 2017, 2018
  * Computer Graphics Group, University of Siegen
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>
+ * Copyright (C) 2026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -136,8 +137,7 @@ void Importer::addLightToScene(int lightSourceIndex, Scene& scene) const
     light.innerConeAngle = l->mAngleInnerCone;
     light.outerConeAngle = l->mAngleOuterCone;
     light.isRelativeToCamera = false;
-    light.position = _transformationMatrix
-        * QVector3D(l->mPosition[0], l->mPosition[1], l->mPosition[2]);
+    light.position = _transformationMatrix.mapVector(QVector3D(l->mPosition[0], l->mPosition[1], l->mPosition[2]));
     light.direction = (_transformationMatrix
             * QVector4D(l->mDirection[0], l->mDirection[1], l->mDirection[2], 0.0f)).toVector3D();
     // We ignore ambient and specular parts of the light color since they cannot be
@@ -181,7 +181,7 @@ static unsigned int createTex(
         } else {
             // Using Qt bindTexture() does not work for some reason, maybe it's
             // because we use a core context. So we do it ourselves.
-            img = img.mirrored(false, true);
+            img = img.flipped(Qt::Vertical);
             img = img.convertToFormat(QImage::Format_RGBA8888);
             gl->glGenTextures(1, &tex);
             gl->glBindTexture(GL_TEXTURE_2D, tex);
@@ -296,7 +296,7 @@ void Importer::addObjectToScene(Scene& scene) const
         data.resize(m->mNumVertices * 3);
         for (unsigned int j = 0; j < m->mNumVertices; j++) {
             QVector3D v = QVector3D(m->mVertices[j].x, m->mVertices[j].y, m->mVertices[j].z);
-            QVector3D w = _transformationMatrix * v;
+            QVector3D w = _transformationMatrix.mapVector(v);
             data[3 * j + 0] = w.x();
             data[3 * j + 1] = w.y();
             data[3 * j + 2] = w.z();
@@ -310,7 +310,7 @@ void Importer::addObjectToScene(Scene& scene) const
         data.resize(m->mNumVertices * 3);
         for (unsigned int j = 0; j < m->mNumVertices; j++) {
             QVector3D v = QVector3D(m->mNormals[j].x, m->mNormals[j].y, m->mNormals[j].z);
-            QVector3D w = normalMatrix * v;
+            QVector3D w = normalMatrix.mapVector(v);
             data[3 * j + 0] = w.x();
             data[3 * j + 1] = w.y();
             data[3 * j + 2] = w.z();
@@ -360,7 +360,7 @@ unsigned int Importer::importTexture(const QString& fileName)
     if (img.load(fileName)) {
         // Using Qt bindTexture() does not work for some reason, maybe it's
         // because we use a core context. So we do it ourselves.
-        img = img.mirrored(false, true);
+        img = img.flipped(Qt::Vertical);
         img = img.convertToFormat(QImage::Format_RGBA8888);
         gl->glGenTextures(1, &tex);
         gl->glBindTexture(GL_TEXTURE_2D, tex);

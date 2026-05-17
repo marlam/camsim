@@ -2,6 +2,7 @@
  * Copyright (C) 2013, 2014, 2015, 2016, 2017, 2018
  * Computer Graphics Group, University of Siegen
  * Written by Martin Lambers <martin.lambers@uni-siegen.de>
+ * Copyright (C) 2026 Martin Lambers <marlam@marlam.de>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +69,7 @@ void Generator::addObjectToScene(Scene& scene, int materialIndex,
     data.resize(vertexCount * 3);
     for (int j = 0; j < vertexCount; j++) {
         QVector3D v = QVector3D(positions[3 * j + 0], positions[3 * j + 1], positions[3 * j + 2]);
-        QVector3D w = transformationMatrix * v;
+        QVector3D w = transformationMatrix.mapVector(v);
         data[3 * j + 0] = w.x();
         data[3 * j + 1] = w.y();
         data[3 * j + 2] = w.z();
@@ -82,7 +83,7 @@ void Generator::addObjectToScene(Scene& scene, int materialIndex,
     data.resize(vertexCount * 3);
     for (int j = 0; j < vertexCount; j++) {
         QVector3D v = QVector3D(normals[3 * j + 0], normals[3 * j + 1], normals[3 * j + 2]);
-        QVector3D w = normalMatrix * v;
+        QVector3D w = normalMatrix.mapVector(v);
         data[3 * j + 0] = w.x();
         data[3 * j + 1] = w.y();
         data[3 * j + 2] = w.z();
